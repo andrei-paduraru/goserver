@@ -32,25 +32,21 @@ type ReqHandler struct {
 func (r *ReqHandler) handle(get func(), post func(), put func(), delete func()) {
     http.HandleFunc(r.path, func(res http.ResponseWriter, req *http.Request) {
         m := req.Method
-        fmt.Printf("Method %q\n", m)
-        var test bool
-        test = put != nil
-        fmt.Printf("%v\n", test)
+        var status int
+        status = http.StatusOK
+        fmt.Printf("%s %s ", m, r.path)
+        var call func()
         switch m {
-            case "GET": get()
-            case "POST": post()
-            case "PUT": if put != nil {put()}else{handleError(res, 404, 1)}
-            case "DELETE": delete()
+            case "GET": if get != nil {call = get}else{status = http.StatusNotFound}
+            case "POST": if post != nil {call = post}else{status = http.StatusNotFound}
+            case "PUT": if put != nil {call = put}else{status = http.StatusNotFound}
+            case "DELETE": if delete != nil {call = delete}else{status = http.StatusNotFound}
+        }
+        fmt.Printf("(%d)\n", status)
+        if status == http.StatusNotFound {
+            http.Error(res, "Not found", http.StatusNotFound)
+        }else{
+            call()
         }
     })
-}
-
-func handleError(res http.ResponseWriter, status int, code int) {
-    codes := []string{
-        "Server error",
-        "Not found"}
-    var statuses = map[int]int{
-        404: http.StatusNotFound}
-    //if code == nil {code = 0}
-    http.Error(res, codes[code], statuses[status])
 }
